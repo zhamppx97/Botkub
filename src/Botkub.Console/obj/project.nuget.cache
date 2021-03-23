@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "Y42CRQZoXf/u0WfIzlnPzhZm1cnfo7gBZQLRjBtGGS5oEY4O4Af2hXC36E2/e2VFnv7fWh/88qPIdFbFBGKNBw==",
+  "success": true,
+  "projectFilePath": "F:\\projects\\git-repos\\Botkub\\src\\Botkub.Console\\Botkub.ConsoleApp.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\USER01\\.nuget\\packages\\newtonsoft.json\\12.0.3\\newtonsoft.json.12.0.3.nupkg.sha512",
+    "C:\\Users\\USER01\\.nuget\\packages\\restsharp\\106.11.7\\restsharp.106.11.7.nupkg.sha512"
+  ],
+  "logs": []
+}

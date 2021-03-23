@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v5.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v5.0": {
+      "Botkub.Desktop/1.0.0": {
+        "runtime": {
+          "Botkub.Desktop.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Botkub.Desktop/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
