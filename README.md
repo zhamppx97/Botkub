@@ -7,6 +7,11 @@ https://notify-bot.line.me/th/
 # Bitkub Open API
 https://github.com/bitkub/bitkub-official-api-docs/blob/master/restful-api.md
 
+# Usage
+Replace to your Token at SendLineNotify
+
+string token = "LINE-notify-token";
+
 # Run Console
 ```
 Good day Boss!
