@@ -88,5 +88,4 @@ Volume(THB)
 #NEAR : 52,027,009.53
 ```
 
-<img src="https://github.com/zhamppx97/Botkub/blob/main/1.png">
-<img src="https://github.com/zhamppx97/Botkub/blob/main/2.png">
+<img src="https://github.com/zhamppx97/Botkub/blob/main/1.png"><img src="https://github.com/zhamppx97/Botkub/blob/main/2.png">
