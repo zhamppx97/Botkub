@@ -86,3 +86,7 @@ Volume(THB)
 #MANA : 87,327,939.01
 #ZIL : 67,233,413.06
 #NEAR : 52,027,009.53
+```
+
+<img src="https://github.com/zhamppx97/Botkub/blob/main/1.png">
+<img src="https://github.com/zhamppx97/Botkub/blob/main/2.png">
