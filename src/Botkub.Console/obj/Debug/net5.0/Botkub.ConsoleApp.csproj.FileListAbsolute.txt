@@ -19,3 +19,5 @@ F:\projects\git-repos\Botkub\src\Botkub.Console\bin\Debug\net5.0\RestSharp.dll
 F:\projects\git-repos\Botkub\src\Botkub.Console\bin\Debug\net5.0\Bitkub.Open.API.Net.dll
 F:\projects\git-repos\Botkub\src\Botkub.Console\bin\Debug\net5.0\Bitkub.Open.API.Net.pdb
 F:\projects\git-repos\Botkub\src\Botkub.Console\obj\Debug\net5.0\Botkub.ConsoleApp.csproj.CopyComplete
+F:\projects\git-repos\Botkub\src\Botkub.Console\bin\Debug\net5.0\Binance.Open.API.Net.dll
+F:\projects\git-repos\Botkub\src\Botkub.Console\bin\Debug\net5.0\Binance.Open.API.Net.pdb

@@ -7,9 +7,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{82C3B14C-4FB
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Botkub.Desktop", "src\Botkub.Desktop\Botkub.Desktop.csproj", "{894688C0-0996-4B37-AA10-9AA240701ACF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Botkub.ConsoleApp", "src\Botkub.Console\Botkub.ConsoleApp.csproj", "{708D733E-4573-4D33-A6DA-A36088593BC6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Botkub.ConsoleApp", "src\Botkub.Console\Botkub.ConsoleApp.csproj", "{708D733E-4573-4D33-A6DA-A36088593BC6}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bitkub.Open.API.Net", "..\Bitkub.Open.API.Net\Bitkub.Open.API.Net\Bitkub.Open.API.Net.csproj", "{AA5C9F69-14B8-48FA-AB65-3FE604BB3B19}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Binance.Open.API.Net", "src\Binance.Open.API.Net\Binance.Open.API.Net.csproj", "{D884A79C-97B3-457A-A20A-319B3278BF65}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,6 +31,10 @@ Global
 		{AA5C9F69-14B8-48FA-AB65-3FE604BB3B19}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AA5C9F69-14B8-48FA-AB65-3FE604BB3B19}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AA5C9F69-14B8-48FA-AB65-3FE604BB3B19}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D884A79C-97B3-457A-A20A-319B3278BF65}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D884A79C-97B3-457A-A20A-319B3278BF65}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D884A79C-97B3-457A-A20A-319B3278BF65}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D884A79C-97B3-457A-A20A-319B3278BF65}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -37,6 +43,7 @@ Global
 		{894688C0-0996-4B37-AA10-9AA240701ACF} = {82C3B14C-4FB4-433F-A1A4-FD1A8F1B0F38}
 		{708D733E-4573-4D33-A6DA-A36088593BC6} = {82C3B14C-4FB4-433F-A1A4-FD1A8F1B0F38}
 		{AA5C9F69-14B8-48FA-AB65-3FE604BB3B19} = {82C3B14C-4FB4-433F-A1A4-FD1A8F1B0F38}
+		{D884A79C-97B3-457A-A20A-319B3278BF65} = {82C3B14C-4FB4-433F-A1A4-FD1A8F1B0F38}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E656590E-62E7-424B-8684-25AA2DD9E84F}
