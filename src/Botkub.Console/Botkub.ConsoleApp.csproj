@@ -6,6 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\Bitkub.Open.API.Net\Bitkub.Open.API.Net\Bitkub.Open.API.Net.csproj" />
     <ProjectReference Include="..\Binance.Open.API.Net\Binance.Open.API.Net.csproj" />
   </ItemGroup>

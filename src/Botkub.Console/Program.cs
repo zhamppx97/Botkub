@@ -1,8 +1,9 @@
-﻿using Bitkub.Open.API.Net;
-using Binance.Open.API.Net;
+﻿using Binance.Open.API.Net;
+using Bitkub.Open.API.Net;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -20,21 +21,13 @@ namespace Botkub.ConsoleApp
             public double QuoteVolume { get; set; }
             public double PercentChange { get; set; }
         }
-
         static void Main(string[] args)
         {
             Timer bitkubMarketTicker = new(BitkubTimerMarketTickerCallback, null, 0, 1000 * 60 * 60 * 2);
-            Timer bitkubTradesBTC = new(BitkubTimerTradesBTCCallback, null, 0, 1000 * 30);
-            Timer bitkubTradesETH = new(BitkubTimerTradesETHCallback, null, 0, 1000 * 30);
-            Timer bitkubTradesBNB = new(BitkubTimerTradesBNBCallback, null, 0, 1000 * 30);
-            Timer bitkubtradesKSM = new(TimerTradesKSMCallback, null, 0, 1000 * 30);
-            //Timer bitkubTradesCOMP = new(BitkubTimerTradesCOMPCallback, null, 0, 1000 * 30);
-
+            Timer bitkubWatchList = new(BitkubWatchList, null, 0, 1000 * 30);
             Timer binanceMarketTicker = new(BinanceTimerMarketTickerCallback, null, 0, 1000 * 60 * 60 * 2);
-
             Console.ReadLine();
         }
-
         static void SendLineNotify(string message)
         {
             if (!message.Equals(""))
@@ -52,7 +45,7 @@ namespace Botkub.ConsoleApp
                 var responseString = new StreamReader(response.GetResponseStream()).ReadToEnd();
             }
         }
-
+        #region Bitkub
         static async Task BitkubMarketTickerAsync()
         {
             try
@@ -239,131 +232,93 @@ namespace Botkub.ConsoleApp
                 Console.WriteLine(ex.Message);
             }
         }
-
         static void BitkubTimerMarketTickerCallback(Object o)
         {
             Console.WriteLine("[Bitkub] Market ticker execute time: " + DateTime.Now);
             BitkubMarketTickerAsync().Wait();
             GC.Collect();
         }
-
-        static async Task BitkubTradesBTC()
+        static async Task BitkubWatchListWorkerAsync()
         {
             try
             {
-                IBitkubMarket market = new BitkubMarket();
-                string sym = "THB_BTC";
-                int limit = 30;
-                var result = await market.GetTradesAsync(sym, limit);
-                foreach (var value in result.result)
+                string[] watchList = ConfigurationManager.AppSettings["BitkubWatchList"].Split(',');
+                foreach (var coinName in watchList)
                 {
-                    string message = "";
-                    JArray itemArray = JArray.Parse(value.ToString());
+                    Console.WriteLine("[Bitkub] #" + coinName + " Watch list execute time: " + DateTime.Now);
 
-                    Int32 unixTimestamp = (Int32)(DateTime.Now.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-                    DateTime tradeDatetime = new(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-                    tradeDatetime = tradeDatetime.AddSeconds((double)itemArray[0]).ToLocalTime();
+                    IBitkubMarket market = new BitkubMarket();
+                    string sym = "THB_" + coinName;
+                    int limit = 30;
+                    var trades = await market.GetTradesAsync(sym, limit);
+                    foreach (var value in trades.result)
+                    {
+                        string message = "";
+                        JArray itemArray = JArray.Parse(value.ToString());
 
-                    if (itemArray.Last.ToString().Equals("BUY"))
-                    {
-                        double priceTHB = (double)itemArray[1];
-                        double btc = (double)itemArray[2];
-                        //// Crab
-                        //if (btc >= 1 && btc <= 10)
-                        //{
-                        //    message = "[Bitkub] Bitcoin #BTC " + Environment.NewLine + " 🦀 Crab traded! #BUY " + btc.ToString() + " Date: " + tradeDatetime.ToLongDateString();
-                        //}
-                        //// Octopus
-                        //else if (btc >= 10 && btc <= 50)
-                        //{
-                        //    message = "[Bitkub] Bitcoin #BTC " + Environment.NewLine + " 🐙 Octopus traded! #BUY " + btc.ToString() + " Date: " + tradeDatetime.ToLongDateString();
-                        //}
-                        //// Fish
-                        //else if (btc >= 50 && btc <= 100)
-                        //{
-                        //    message = "[Bitkub] Bitcoin #BTC " + Environment.NewLine + " 🐟 Fish traded! #BUY " + btc.ToString() + " Date: " + tradeDatetime.ToLongDateString();
-                        //}
-                        //// Dolphin
-                        //else if (btc >= 100 && btc <= 500)
-                        //{
-                        //    message = "[Bitkub] Bitcoin #BTC " + Environment.NewLine + " 🐬 Dolphin traded! #BUY " + btc.ToString() + " Date: " + tradeDatetime.ToLongDateString();
-                        //}
-                        // Shark
-                        if (btc >= 500 && btc <= 1000)
+                        Int32 unixTimestamp = (Int32)(DateTime.Now.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
+                        DateTime tradeDatetime = new(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+                        tradeDatetime = tradeDatetime.AddSeconds((double)itemArray[0]).ToLocalTime();
+
+                        if (itemArray.Last.ToString().Equals("BUY"))
                         {
-                            message = "💚[Bitkub] Bitcoin #BTC " + Environment.NewLine + " 🦈 Shark traded! #BUY " + btc.ToString() + "#BTC | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
+                            double priceTHB = (double)itemArray[1];
+                            double amount = (double)itemArray[2];
+                            // Shark
+                            if (amount >= 500 && amount <= 1000)
+                            {
+                                message = "💚[Bitkub] #" + coinName + Environment.NewLine + " 🦈 Shark traded! #BUY " + amount.ToString() + "#" + coinName + " | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
+                            }
+                            // Whale
+                            else if (amount >= 1000 && amount <= 5000)
+                            {
+                                message = "💚[Bitkub] #" + coinName + Environment.NewLine + " 🐋 Whale traded! #BUY " + amount.ToString() + "#" + coinName + " | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
+                            }
+                            // Humpback Whale
+                            else if (amount >= 5000)
+                            {
+                                message = "💚[Bitkub] #" + coinName + Environment.NewLine + " 🐳🐋 Humpback Whale traded! #BUY " + amount.ToString() + "#" + coinName + " | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
+                            }
                         }
-                        // Whale
-                        else if (btc >= 1000 && btc <= 5000)
+                        if (itemArray.Last.ToString().Equals("SELL"))
                         {
-                            message = "💚[Bitkub] Bitcoin #BTC " + Environment.NewLine + " 🐋 Whale traded! #BUY " + btc.ToString() + "#BTC | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
+                            double priceTHB = (double)itemArray[1];
+                            double amount = (double)itemArray[2];
+                            // Shark
+                            if (amount >= 500 && amount <= 1000)
+                            {
+                                message = "💚[Bitkub] #" + coinName + Environment.NewLine + " 🦈 Shark traded! #SELL " + amount.ToString() + "#" + coinName + " | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
+                            }
+                            // Whale
+                            else if (amount >= 1000 && amount <= 5000)
+                            {
+                                message = "💚[Bitkub] #" + coinName + Environment.NewLine + " 🐋 Whale traded! #SELL " + amount.ToString() + "#" + coinName + " | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
+                            }
+                            // Humpback Whale
+                            else if (amount >= 5000)
+                            {
+                                message = "💚[Bitkub] #" + coinName + Environment.NewLine + " 🐳🐋 Humpback Whale traded! #SELL " + amount.ToString() + "#" + coinName + " | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
+                            }
                         }
-                        // Humpback Whale
-                        else if (btc >= 5000)
+
+                        if (!message.Equals(""))
                         {
-                            message = "💚[Bitkub] Bitcoin #BTC " + Environment.NewLine + " 🐳🐋 Humpback Whale traded! #BUY " + btc.ToString() + "#BTC | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                    }
-                    if (itemArray.Last.ToString().Equals("SELL"))
-                    {
-                        double priceTHB = (double)itemArray[1];
-                        double btc = (double)itemArray[2];
-                        //// Crab
-                        //if (btc >= 1 && btc <= 10)
-                        //{
-                        //    message = "[Bitkub] Bitcoin #BTC " + Environment.NewLine + " 🦀 Crab traded! #SELL " + btc.ToString() + " Date: " + tradeDatetime.ToLongDateString();
-                        //}
-                        //// Octopus
-                        //else if (btc >= 10 && btc <= 50)
-                        //{
-                        //    message = "[Bitkub] Bitcoin #BTC " + Environment.NewLine + " 🐙 Octopus traded! #SELL " + btc.ToString() + " Date: " + tradeDatetime.ToLongDateString();
-                        //}
-                        //// Fish
-                        //else if (btc >= 50 && btc <= 100)
-                        //{
-                        //    message = "[Bitkub] Bitcoin #BTC " + Environment.NewLine + " 🐟 Fish traded! #SELL " + btc.ToString() + " Date: " + tradeDatetime.ToLongDateString();
-                        //}
-                        //// Dolphin
-                        //else if (btc >= 100 && btc <= 500)
-                        //{
-                        //    message = "[Bitkub] Bitcoin #BTC " + Environment.NewLine + " 🐬 Dolphin traded! #SELL " + btc.ToString() + " Date: " + tradeDatetime.ToLongDateString();
-                        //}
-                        // Shark
-                        if (btc >= 500 && btc <= 1000)
-                        {
-                            message = "💚[Bitkub] Bitcoin #BTC " + Environment.NewLine + " 🦈 Shark traded! #SELL " + btc.ToString() + "#BTC | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Whale
-                        else if (btc >= 1000 && btc <= 5000)
-                        {
-                            message = "💚[Bitkub] Bitcoin #BTC " + Environment.NewLine + " 🐋 Whale traded! #SELL " + btc.ToString() + "#BTC | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Humpback Whale
-                        else if (btc >= 5000)
-                        {
-                            message = "💚[Bitkub] Bitcoin #BTC " + Environment.NewLine + " 🐳🐋 Humpback Whale traded! #SELL " + btc.ToString() + "#BTC | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
+                            Console.WriteLine(message);
+                            SendLineNotify(message);
                         }
                     }
 
-                    if (!message.Equals(""))
+                    StringBuilder sbTicker = new();
+                    var ticker = await market.GetTickerAsync(sym);
+                    var tickerCoin = ticker.GetType().GetProperty(sym).GetValue(ticker, null);
+                    if (Convert.ToDouble(tickerCoin.GetType().GetProperty("percentChange").GetValue(tickerCoin, null)) <= (-10))
                     {
-                        Console.WriteLine(message);
-                        SendLineNotify(message);
-                    }
-                }
-
-                StringBuilder sbTicker = new();
-                var resultTicker = await market.GetTickerAsync(sym);
-                if (resultTicker.THB_BTC != null)
-                {
-                    if (Convert.ToDouble(resultTicker.THB_BTC.percentChange) <= (-10))
-                    {
-                        sbTicker.Append("💚[Bitkub] Bitcoin #BTC 🔥🔥🔥" + Environment.NewLine);
+                        sbTicker.Append("💚[Bitkub] #" + coinName + " 🔥🔥🔥" + Environment.NewLine);
                         sbTicker.Append("Percent change is too low! 🔥🔥🔥" + Environment.NewLine);
-                        sbTicker.AppendFormat("Last: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(resultTicker.THB_BTC.last)));
-                        sbTicker.AppendFormat("High 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(resultTicker.THB_BTC.high24hr)));
-                        sbTicker.AppendFormat("Low 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(resultTicker.THB_BTC.low24hr)));
-                        sbTicker.AppendFormat("Percent change: {0}" + Environment.NewLine, resultTicker.THB_BTC.percentChange);
+                        sbTicker.AppendFormat("Last: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(tickerCoin.GetType().GetProperty("last").GetValue(tickerCoin, null))));
+                        sbTicker.AppendFormat("High 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(tickerCoin.GetType().GetProperty("high24hr").GetValue(tickerCoin, null))));
+                        sbTicker.AppendFormat("Low 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(tickerCoin.GetType().GetProperty("low24hr").GetValue(tickerCoin, null))));
+                        sbTicker.AppendFormat("Percent change: {0}" + Environment.NewLine, tickerCoin.GetType().GetProperty("percentChange").GetValue(tickerCoin, null));
                         sbTicker.Append("-------------------------------------" + Environment.NewLine);
 
                         Console.WriteLine(sbTicker);
@@ -376,402 +331,14 @@ namespace Botkub.ConsoleApp
                 Console.WriteLine(ex.Message);
             }
         }
-
-        static void BitkubTimerTradesBTCCallback(Object o)
+        static void BitkubWatchList(Object o)
         {
-            Console.WriteLine("[Bitkub] Trades BTC execute time: " + DateTime.Now);
-            BitkubTradesBTC().Wait();
+            Console.WriteLine("[Bitkub] Watch list execute time: " + DateTime.Now);
+            BitkubWatchListWorkerAsync().Wait();
             GC.Collect();
         }
-
-        static async Task BitkubTradesETH()
-        {
-            try
-            {
-                IBitkubMarket market = new BitkubMarket();
-                string sym = "THB_ETH";
-                int limit = 30;
-                var resultTrades = await market.GetTradesAsync(sym, limit);
-                foreach (var value in resultTrades.result)
-                {
-                    string message = "";
-                    JArray itemArray = JArray.Parse(value.ToString());
-
-                    Int32 unixTimestamp = (Int32)(DateTime.Now.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-                    DateTime tradeDatetime = new(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-                    tradeDatetime = tradeDatetime.AddSeconds((double)itemArray[0]).ToLocalTime();
-
-                    if (itemArray.Last.ToString().Equals("BUY"))
-                    {
-                        double priceTHB = (double)itemArray[1];
-                        double eth = (double)itemArray[2];
-                        // Shark
-                        if (eth >= 500 && eth <= 1000)
-                        {
-                            message = "💚[Bitkub] Ethereum #ETH " + Environment.NewLine + " 🦈 Shark traded! #BUY " + eth.ToString() + "#ETH | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Whale
-                        else if (eth >= 1000 && eth <= 5000)
-                        {
-                            message = "💚[Bitkub] Ethereum #ETH " + Environment.NewLine + " 🐋 Whale traded! #BUY " + eth.ToString() + "#ETH | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Humpback Whale
-                        else if (eth >= 5000)
-                        {
-                            message = "💚[Bitkub] Ethereum #ETH " + Environment.NewLine + " 🐳🐋 Humpback Whale traded! #BUY " + eth.ToString() + "#ETH | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                    }
-                    if (itemArray.Last.ToString().Equals("SELL"))
-                    {
-                        double priceTHB = (double)itemArray[1];
-                        double eth = (double)itemArray[2];
-                        // Shark
-                        if (eth >= 500 && eth <= 1000)
-                        {
-                            message = "💚[Bitkub] Ethereum #ETH " + Environment.NewLine + " 🦈 Shark traded! #SELL " + eth.ToString() + "#ETH | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Whale
-                        else if (eth >= 1000 && eth <= 5000)
-                        {
-                            message = "💚[Bitkub] Ethereum #ETH " + Environment.NewLine + " 🐋 Whale traded! #SELL " + eth.ToString() + "#ETH | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Humpback Whale
-                        else if (eth >= 5000)
-                        {
-                            message = "💚[Bitkub] Ethereum #ETH " + Environment.NewLine + " 🐳🐋 Humpback Whale traded! #SELL " + eth.ToString() + "#ETH | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                    }
-
-                    if (!message.Equals(""))
-                    {
-                        Console.WriteLine(message);
-                        SendLineNotify(message);
-                    }
-                }
-
-                StringBuilder sbTicker = new();
-                var resultTicker = await market.GetTickerAsync(sym);
-                if (resultTicker.THB_ETH != null)
-                {
-                    if (Convert.ToDouble(resultTicker.THB_ETH.percentChange) <= (-10))
-                    {
-                        sbTicker.Append("💚[Bitkub] Ethereum #ETH 🔥🔥🔥" + Environment.NewLine);
-                        sbTicker.Append("Percent change is too low! 🔥🔥🔥" + Environment.NewLine);
-                        sbTicker.AppendFormat("Last: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(resultTicker.THB_ETH.last)));
-                        sbTicker.AppendFormat("High 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(resultTicker.THB_ETH.high24hr)));
-                        sbTicker.AppendFormat("Low 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(resultTicker.THB_ETH.low24hr)));
-                        sbTicker.AppendFormat("Percent change: {0}" + Environment.NewLine, resultTicker.THB_ETH.percentChange);
-                        sbTicker.Append("-------------------------------------" + Environment.NewLine);
-
-                        Console.WriteLine(sbTicker);
-                        SendLineNotify(sbTicker.ToString());
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-        }
-
-        static void BitkubTimerTradesETHCallback(Object o)
-        {
-            Console.WriteLine("[Bitkub] Trades ETH execute time: " + DateTime.Now);
-            BitkubTradesETH().Wait();
-            GC.Collect();
-        }
-
-        static async Task BitkubTradesBNB()
-        {
-            try
-            {
-                IBitkubMarket market = new BitkubMarket();
-                string sym = "THB_BNB";
-                int limit = 30;
-                var resultTrades = await market.GetTradesAsync(sym, limit);
-                foreach (var value in resultTrades.result)
-                {
-                    string message = "";
-                    JArray itemArray = JArray.Parse(value.ToString());
-
-                    Int32 unixTimestamp = (Int32)(DateTime.Now.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-                    DateTime tradeDatetime = new(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-                    tradeDatetime = tradeDatetime.AddSeconds((double)itemArray[0]).ToLocalTime();
-
-                    if (itemArray.Last.ToString().Equals("BUY"))
-                    {
-                        double priceTHB = (double)itemArray[1];
-                        double bnb = (double)itemArray[2];
-                        // Shark
-                        if (bnb >= 500 && bnb <= 1000)
-                        {
-                            message = "💚[Bitkub] Binance #BNB " + Environment.NewLine + " 🦈 Shark traded! #BUY " + bnb.ToString() + "#BNB | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Whale
-                        else if (bnb >= 1000 && bnb <= 5000)
-                        {
-                            message = "💚[Bitkub] Binance #BNB " + Environment.NewLine + " 🐋 Whale traded! #BUY " + bnb.ToString() + "#BNB | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Humpback Whale
-                        else if (bnb >= 5000)
-                        {
-                            message = "💚[Bitkub] Binance #BNB " + Environment.NewLine + " 🐳🐋 Humpback Whale traded! #BUY " + bnb.ToString() + "#BNB | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                    }
-                    if (itemArray.Last.ToString().Equals("SELL"))
-                    {
-                        double priceTHB = (double)itemArray[1];
-                        double bnb = (double)itemArray[2];
-                        // Shark
-                        if (bnb >= 500 && bnb <= 1000)
-                        {
-                            message = "💚[Bitkub] Binance #BNB " + Environment.NewLine + " 🦈 Shark traded! #SELL " + bnb.ToString() + "#BNB | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Whale
-                        else if (bnb >= 1000 && bnb <= 5000)
-                        {
-                            message = "💚[Bitkub] Binance #BNB " + Environment.NewLine + " 🐋 Whale traded! #SELL " + bnb.ToString() + "#BNB | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Humpback Whale
-                        else if (bnb >= 5000)
-                        {
-                            message = "💚[Bitkub] Binance #BNB " + Environment.NewLine + " 🐳🐋 Humpback Whale traded! #SELL " + bnb.ToString() + "#BNB | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                    }
-
-                    if (!message.Equals(""))
-                    {
-                        Console.WriteLine(message);
-                        SendLineNotify(message);
-                    }
-                }
-
-                StringBuilder sbTicker = new();
-                var resultTicker = await market.GetTickerAsync(sym);
-                if (resultTicker.THB_KSM != null)
-                {
-                    if (Convert.ToDouble(resultTicker.THB_KSM.percentChange) <= (-10))
-                    {
-                        sbTicker.Append("💚[Bitkub] Binance #BNB 🔥🔥🔥" + Environment.NewLine);
-                        sbTicker.Append("Percent change is too low! 🔥🔥🔥" + Environment.NewLine);
-                        sbTicker.AppendFormat("Last: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(resultTicker.THB_BNB.last)));
-                        sbTicker.AppendFormat("High 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(resultTicker.THB_BNB.high24hr)));
-                        sbTicker.AppendFormat("Low 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(resultTicker.THB_BNB.low24hr)));
-                        sbTicker.AppendFormat("Percent change: {0}" + Environment.NewLine, resultTicker.THB_KSM.percentChange);
-                        sbTicker.Append("-------------------------------------" + Environment.NewLine);
-
-                        Console.WriteLine(sbTicker);
-                        SendLineNotify(sbTicker.ToString());
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-        }
-
-        static void BitkubTimerTradesBNBCallback(Object o)
-        {
-            Console.WriteLine("[Bitkub] Trades BNB execute time: " + DateTime.Now);
-            BitkubTradesBNB().Wait();
-            GC.Collect();
-        }
-
-        static async Task BitkubTradesCOMP()
-        {
-            try
-            {
-                IBitkubMarket market = new BitkubMarket();
-                string sym = "THB_COMP";
-                int limit = 30;
-                var resultTrades = await market.GetTradesAsync(sym, limit);
-                foreach (var value in resultTrades.result)
-                {
-                    string message = "";
-                    JArray itemArray = JArray.Parse(value.ToString());
-
-                    Int32 unixTimestamp = (Int32)(DateTime.Now.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-                    DateTime tradeDatetime = new(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-                    tradeDatetime = tradeDatetime.AddSeconds((double)itemArray[0]).ToLocalTime();
-
-                    if (itemArray.Last.ToString().Equals("BUY"))
-                    {
-                        double priceTHB = (double)itemArray[1];
-                        double comp = (double)itemArray[2];
-                        // Shark
-                        if (comp >= 500 && comp <= 1000)
-                        {
-                            message = "💚[Bitkub] Compound #COMP " + Environment.NewLine + " 🦈 Shark traded! #BUY " + comp.ToString() + "#COMP | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Whale
-                        else if (comp >= 1000 && comp <= 5000)
-                        {
-                            message = "💚[Bitkub] Compound #COMP " + Environment.NewLine + " 🐋 Whale traded! #BUY " + comp.ToString() + "#COMP | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Humpback Whale
-                        else if (comp >= 5000)
-                        {
-                            message = "💚[Bitkub] Compound #COMP " + Environment.NewLine + " 🐳🐋 Humpback Whale traded! #BUY " + comp.ToString() + "#COMP | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                    }
-                    if (itemArray.Last.ToString().Equals("SELL"))
-                    {
-                        double priceTHB = (double)itemArray[1];
-                        double comp = (double)itemArray[2];
-                        // Shark
-                        if (comp >= 500 && comp <= 1000)
-                        {
-                            message = "💚[Bitkub] Compound #COMP " + Environment.NewLine + " 🦈 Shark traded! #SELL " + comp.ToString() + "#COMP | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Whale
-                        else if (comp >= 1000 && comp <= 5000)
-                        {
-                            message = "💚[Bitkub] Compound #COMP " + Environment.NewLine + " 🐋 Whale traded! #SELL " + comp.ToString() + "#COMP | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Humpback Whale
-                        else if (comp >= 5000)
-                        {
-                            message = "💚[Bitkub] Compound #COMP " + Environment.NewLine + " 🐳🐋 Humpback Whale traded! #SELL " + comp.ToString() + "#COMP | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                    }
-
-                    if (!message.Equals(""))
-                    {
-                        Console.WriteLine(message);
-                        SendLineNotify(message);
-                    }
-                }
-
-                StringBuilder sbTicker = new();
-                var resultTicker = await market.GetTickerAsync(sym);
-                if (resultTicker.THB_KSM != null)
-                {
-                    if (Convert.ToDouble(resultTicker.THB_KSM.percentChange) <= (-10))
-                    {
-                        sbTicker.Append("💚[Bitkub] Compound #COMP 🔥🔥🔥" + Environment.NewLine);
-                        sbTicker.Append("Percent change is too low! 🔥🔥🔥" + Environment.NewLine);
-                        sbTicker.AppendFormat("Last: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(resultTicker.THB_COMP.last)));
-                        sbTicker.AppendFormat("High 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(resultTicker.THB_COMP.high24hr)));
-                        sbTicker.AppendFormat("Low 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(resultTicker.THB_COMP.low24hr)));
-                        sbTicker.AppendFormat("Percent change: {0}" + Environment.NewLine, resultTicker.THB_COMP.percentChange);
-                        sbTicker.Append("-------------------------------------" + Environment.NewLine);
-
-                        Console.WriteLine(sbTicker);
-                        SendLineNotify(sbTicker.ToString());
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-        }
-
-        static void BitkubTimerTradesCOMPCallback(Object o)
-        {
-            Console.WriteLine("[Bitkub] Trades COMP execute time: " + DateTime.Now);
-            BitkubTradesCOMP().Wait();
-            GC.Collect();
-        }
-
-        static async Task TradesKSM()
-        {
-            try
-            {
-                IBitkubMarket market = new BitkubMarket();
-                string sym = "THB_KSM";
-                int limit = 30;
-                var resultTrades = await market.GetTradesAsync(sym, limit);
-                foreach (var value in resultTrades.result)
-                {
-                    string message = "";
-                    JArray itemArray = JArray.Parse(value.ToString());
-
-                    Int32 unixTimestamp = (Int32)(DateTime.Now.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-                    DateTime tradeDatetime = new(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-                    tradeDatetime = tradeDatetime.AddSeconds((double)itemArray[0]).ToLocalTime();
-
-                    if (itemArray.Last.ToString().Equals("BUY"))
-                    {
-                        double priceTHB = (double)itemArray[1];
-                        double ksm = (double)itemArray[2];
-                        // Shark
-                        if (ksm >= 500 && ksm <= 1000)
-                        {
-                            message = "💚[Bitkub] Kusama #KSM " + Environment.NewLine + " 🦈 Shark traded! #BUY " + ksm.ToString() + "#KSM | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Whale
-                        else if (ksm >= 1000 && ksm <= 5000)
-                        {
-                            message = "💚[Bitkub] Kusama #KSM " + Environment.NewLine + " 🐋 Whale traded! #BUY " + ksm.ToString() + "#KSM | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Humpback Whale
-                        else if (ksm >= 5000)
-                        {
-                            message = "💚[Bitkub] Kusama #KSM " + Environment.NewLine + " 🐳🐋 Humpback Whale traded! #BUY " + ksm.ToString() + "#KSM | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                    }
-                    if (itemArray.Last.ToString().Equals("SELL"))
-                    {
-                        double priceTHB = (double)itemArray[1];
-                        double ksm = (double)itemArray[2];
-                        // Shark
-                        if (ksm >= 500 && ksm <= 1000)
-                        {
-                            message = "💚[Bitkub] Kusama #KSM " + Environment.NewLine + " 🦈 Shark traded! #SELL " + ksm.ToString() + "#KSM | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Whale
-                        else if (ksm >= 1000 && ksm <= 5000)
-                        {
-                            message = "💚[Bitkub] Kusama #KSM " + Environment.NewLine + " 🐋 Whale traded! #SELL " + ksm.ToString() + "#KSM | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                        // Humpback Whale
-                        else if (ksm >= 5000)
-                        {
-                            message = "💚[Bitkub] Kusama #KSM " + Environment.NewLine + " 🐳🐋 Humpback Whale traded! #SELL " + ksm.ToString() + "#KSM | " + priceTHB.ToString() + "#THB |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
-                        }
-                    }
-
-                    if (!message.Equals(""))
-                    {
-                        Console.WriteLine(message);
-                        SendLineNotify(message);
-                    }
-                }
-
-                StringBuilder sbTicker = new();
-                var resultTicker = await market.GetTickerAsync(sym);
-                if (resultTicker.THB_KSM != null)
-                {
-                    if (Convert.ToDouble(resultTicker.THB_KSM.percentChange) <= (-10))
-                    {
-                        sbTicker.Append("💚[Bitkub] Kusama #KSM 🔥🔥🔥" + Environment.NewLine);
-                        sbTicker.Append("Percent change is too low! 🔥🔥🔥" + Environment.NewLine);
-                        sbTicker.AppendFormat("Last: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(resultTicker.THB_KSM.last)));
-                        sbTicker.AppendFormat("High 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(resultTicker.THB_KSM.high24hr)));
-                        sbTicker.AppendFormat("Low 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(resultTicker.THB_KSM.low24hr)));
-                        sbTicker.AppendFormat("Percent change: {0}" + Environment.NewLine, resultTicker.THB_KSM.percentChange);
-                        sbTicker.Append("-------------------------------------" + Environment.NewLine);
-
-                        Console.WriteLine(sbTicker);
-                        SendLineNotify(sbTicker.ToString());
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-        }
-
-        static void TimerTradesKSMCallback(Object o)
-        {
-            Console.WriteLine("[Bitkub] Trades KSM execute time: " + DateTime.Now);
-            TradesKSM().Wait();
-            GC.Collect();
-        }
-
+        #endregion
+        #region Binance
         static async Task BinanceMarketTickerAsync()
         {
             try
@@ -862,12 +429,12 @@ namespace Botkub.ConsoleApp
                 Console.WriteLine(ex.Message);
             }
         }
-
         static void BinanceTimerMarketTickerCallback(Object o)
         {
             Console.WriteLine("[Binance] Market ticker execute time: " + DateTime.Now);
             BinanceMarketTickerAsync().Wait();
             GC.Collect();
         }
+        #endregion
     }
 }
