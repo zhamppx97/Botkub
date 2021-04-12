@@ -23,7 +23,7 @@ namespace Botkub.ConsoleApp
         }
         static void Main(string[] args)
         {
-            Timer bitkubMarketTicker = new(BitkubTimerMarketTickerCallback, null, 0, 1000 * 60 * 60 * 2);
+            Timer bitkubMarketTicker = new(BitkubTimerMarketTickerCallback, null, 0, 1000 * 60 * 60 * 1);
             Timer bitkubWatchList = new(BitkubWatchList, null, 0, 1000 * 30);
             Timer binanceMarketTicker = new(BinanceTimerMarketTickerCallback, null, 0, 1000 * 60 * 60 * 2);
             Console.ReadLine();
@@ -53,7 +53,6 @@ namespace Botkub.ConsoleApp
                 IBitkubMarket market = new BitkubMarket();
                 string sym = null; // ex THB_BTC
                 var result = await market.GetTickerAsync(sym);
-
                 IList<Coins> listCoins = new List<Coins>()
                 {
                     new Coins{ CoinName = "BTC", QuoteVolume = Convert.ToDouble(result.THB_BTC.quoteVolume), PercentChange = Convert.ToDouble(result.THB_BTC.percentChange) },
@@ -99,90 +98,42 @@ namespace Botkub.ConsoleApp
                     new Coins{ CoinName = "AAVE", QuoteVolume = Convert.ToDouble(result.THB_AAVE.quoteVolume), PercentChange = Convert.ToDouble(result.THB_AAVE.percentChange) },
                 };
 
-                StringBuilder sbTicker = new();
-                sbTicker.Append("Good day Boss!" + Environment.NewLine);
-                sbTicker.Append("🚀🚀🚀🎉🎉🎉" + Environment.NewLine);
-                sbTicker.Append("💚 Bitkub Market Ticker 💚" + Environment.NewLine);
-                if (result.THB_BTC != null)
+                string[] watchList = ConfigurationManager.AppSettings["BitkubWatchList"].Split(',');
+                foreach (var coinName in watchList)
                 {
-                    sbTicker.Append("💚[Bitkub] Bitcoin #BTC" + Environment.NewLine);
-                    sbTicker.AppendFormat("Last: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_BTC.last)));
-                    sbTicker.AppendFormat("High 24 hrs: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_BTC.high24hr)));
-                    sbTicker.AppendFormat("Low 24 hrs: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_BTC.low24hr)));
-                    sbTicker.AppendFormat("Percent change: {0}" + Environment.NewLine, result.THB_BTC.percentChange);
+                    string symbol = "THB_" + coinName;
+                    int limit = 10000;
+                    var trades = await market.GetTradesAsync(symbol, limit);
+                    int buyCount = 0;
+                    int sellCount = 0;
+                    foreach (var item in trades.result)
+                    {
+                        JArray itemArray = JArray.Parse(item.ToString());
+                        if (itemArray.Last.ToString().Equals("BUY"))
+                        {
+                            buyCount += 1;
+                        }
+                        if (itemArray.Last.ToString().Equals("SELL"))
+                        {
+                            sellCount += 1;
+                        }
+                    }
+
+                    var watchCoin = result.GetType().GetProperty(symbol).GetValue(result, null);
+                    StringBuilder sbTicker = new();
+                    sbTicker.Append("Good day Boss!" + Environment.NewLine);
+                    sbTicker.Append("🚀🚀🚀🎉🎉🎉" + Environment.NewLine);
+                    sbTicker.Append("💚 Bitkub Market Ticker 💚" + Environment.NewLine);
+                    sbTicker.Append("💚[Bitkub] #" + coinName + Environment.NewLine);
+                    sbTicker.AppendFormat("Last: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(watchCoin.GetType().GetProperty("last").GetValue(watchCoin, null))));
+                    sbTicker.AppendFormat("High 24 hrs: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(watchCoin.GetType().GetProperty("high24hr").GetValue(watchCoin, null))));
+                    sbTicker.AppendFormat("Low 24 hrs: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(watchCoin.GetType().GetProperty("low24hr").GetValue(watchCoin, null))));
+                    sbTicker.AppendFormat("Percent change: {0}" + Environment.NewLine, watchCoin.GetType().GetProperty("percentChange").GetValue(watchCoin, null));
+                    sbTicker.AppendFormat("Trades count: {0} | BUY = {1}, SELL = {2}" + Environment.NewLine, limit.ToString(), buyCount, sellCount );
                     sbTicker.Append("-------------------------------------" + Environment.NewLine);
-                }
-                if (result.THB_ETH != null)
-                {
-                    sbTicker.Append("💚[Bitkub] Ethereum #ETH" + Environment.NewLine);
-                    sbTicker.AppendFormat("Last: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_ETH.last)));
-                    sbTicker.AppendFormat("High 24 hrs: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_ETH.high24hr)));
-                    sbTicker.AppendFormat("Low 24 hrs: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_ETH.low24hr)));
-                    sbTicker.AppendFormat("Percent change: {0}" + Environment.NewLine, result.THB_ETH.percentChange);
-                    sbTicker.Append("-------------------------------------" + Environment.NewLine);
-                }
-                //if (result.THB_XRP != null)
-                //{
-                //    sbTicker.Append("💚[Bitkub] XRP #XRP" + Environment.NewLine);
-                //    sbTicker.AppendFormat("Last: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_XRP.last)));
-                //    sbTicker.AppendFormat("High 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_XRP.high24hr)));
-                //    sbTicker.AppendFormat("Low 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_XRP.low24hr)));
-                //    sbTicker.AppendFormat("Percent change: {0}" + Environment.NewLine, result.THB_XRP.percentChange);
-                //    sbTicker.Append("-------------------------------------" + Environment.NewLine);
-                //}
-                //if (result.THB_LTC != null)
-                //{
-                //    sbTicker.Append("💚[Bitkub] Litecoin #LTC" + Environment.NewLine);
-                //    sbTicker.AppendFormat("Last: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_LTC.last)));
-                //    sbTicker.AppendFormat("High 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_LTC.high24hr)));
-                //    sbTicker.AppendFormat("Low 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_LTC.low24hr)));
-                //    sbTicker.AppendFormat("Percent change: {0}" + Environment.NewLine, result.THB_LTC.percentChange);
-                //    sbTicker.Append("-------------------------------------" + Environment.NewLine);
-                //}
-                //if (result.THB_BCH != null)
-                //{
-                //    sbTicker.Append("💚[Bitkub] Bitcoin Cash #BCH" + Environment.NewLine);
-                //    sbTicker.AppendFormat("Last: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_BCH.last)));
-                //    sbTicker.AppendFormat("High 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_BCH.high24hr)));
-                //    sbTicker.AppendFormat("Low 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_BCH.low24hr)));
-                //    sbTicker.AppendFormat("Percent change: {0}" + Environment.NewLine, result.THB_BCH.percentChange);
-                //    sbTicker.Append("-------------------------------------" + Environment.NewLine);
-                //}
-                //if (result.THB_USDT != null)
-                //{
-                //    sbTicker.Append("💚[Bitkub] USDT #USDT" + Environment.NewLine);
-                //    sbTicker.AppendFormat("Last: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_USDT.last)));
-                //    sbTicker.AppendFormat("High 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_USDT.high24hr)));
-                //    sbTicker.AppendFormat("Low 24 hrs: {0}" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_USDT.low24hr)));
-                //    sbTicker.AppendFormat("Percent change: {0}" + Environment.NewLine, result.THB_USDT.percentChange);
-                //    sbTicker.Append("-------------------------------------" + Environment.NewLine);
-                //}
-                if (result.THB_BNB != null)
-                {
-                    sbTicker.Append("💚[Bitkub] Binance #BNB" + Environment.NewLine);
-                    sbTicker.AppendFormat("Last: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_BNB.last)));
-                    sbTicker.AppendFormat("High 24 hrs: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_BNB.high24hr)));
-                    sbTicker.AppendFormat("Low 24 hrs: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_BNB.low24hr)));
-                    sbTicker.AppendFormat("Percent change: {0}" + Environment.NewLine, result.THB_BNB.percentChange);
-                    sbTicker.Append("-------------------------------------" + Environment.NewLine);
-                }
-                //if (result.THB_COMP != null)
-                //{
-                //    sbTicker.Append("💚[Bitkub] Compound #COMP" + Environment.NewLine);
-                //    sbTicker.AppendFormat("Last: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_COMP.last)));
-                //    sbTicker.AppendFormat("High 24 hrs: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_COMP.high24hr)));
-                //    sbTicker.AppendFormat("Low 24 hrs: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_COMP.low24hr)));
-                //    sbTicker.AppendFormat("Percent change: {0}" + Environment.NewLine, result.THB_COMP.percentChange);
-                //    sbTicker.Append("-------------------------------------" + Environment.NewLine);
-                //}
-                if (result.THB_KSM != null)
-                {
-                    sbTicker.Append("💚[Bitkub] Kusama #KSM" + Environment.NewLine);
-                    sbTicker.AppendFormat("Last: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_KSM.last)));
-                    sbTicker.AppendFormat("High 24 hrs: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_KSM.high24hr)));
-                    sbTicker.AppendFormat("Low 24 hrs: {0}฿" + Environment.NewLine, string.Format("{0:#,0.####}", Convert.ToDouble(result.THB_KSM.low24hr)));
-                    sbTicker.AppendFormat("Percent change: {0}" + Environment.NewLine, result.THB_KSM.percentChange);
-                    sbTicker.Append("-------------------------------------" + Environment.NewLine);
+
+                    Console.WriteLine(sbTicker);
+                    SendLineNotify(sbTicker.ToString());
                 }
 
                 StringBuilder sbTopGainer = new();
@@ -211,11 +162,6 @@ namespace Botkub.ConsoleApp
                     }
                 }
 
-                if (!sbTicker.ToString().Equals(""))
-                {
-                    Console.WriteLine(sbTicker);
-                    SendLineNotify(sbTicker.ToString());
-                }
                 if (!sbTopGainer.ToString().Equals(""))
                 {
                     Console.WriteLine(sbTopGainer);
