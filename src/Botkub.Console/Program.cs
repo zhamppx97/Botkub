@@ -23,9 +23,10 @@ namespace Botkub.ConsoleApp
         }
         static void Main(string[] args)
         {
-            Timer bitkubMarketTicker = new(BitkubTimerMarketTickerCallback, null, 0, 1000 * 60 * 60 * 1);
+            int timeHr = int.Parse(ConfigurationManager.AppSettings["TimeHR"]);
+            Timer bitkubMarketTicker = new(BitkubTimerMarketTickerCallback, null, 0, 1000 * 60 * 60 * timeHr);
             Timer bitkubWatchList = new(BitkubWatchList, null, 0, 1000 * 30);
-            Timer binanceMarketTicker = new(BinanceTimerMarketTickerCallback, null, 0, 1000 * 60 * 60 * 2);
+            Timer binanceMarketTicker = new(BinanceTimerMarketTickerCallback, null, 0, 1000 * 60 * 60 * timeHr);
             Console.ReadLine();
         }
         static void SendLineNotify(string message)
@@ -86,6 +87,8 @@ namespace Botkub.ConsoleApp
                     new Coins{ CoinName = "DAI", QuoteVolume = Convert.ToDouble(result.THB_DAI.quoteVolume), PercentChange = Convert.ToDouble(result.THB_DAI.percentChange) },
                     new Coins{ CoinName = "USDC", QuoteVolume = Convert.ToDouble(result.THB_USDC.quoteVolume), PercentChange = Convert.ToDouble(result.THB_USDC.percentChange) },
                     new Coins{ CoinName = "BAT", QuoteVolume = Convert.ToDouble(result.THB_BAT.quoteVolume), PercentChange = Convert.ToDouble(result.THB_BAT.percentChange) },
+                    new Coins{ CoinName = "MKR", QuoteVolume = Convert.ToDouble(result.THB_MKR.quoteVolume), PercentChange = Convert.ToDouble(result.THB_MKR.percentChange) },
+                    new Coins{ CoinName = "ENJ", QuoteVolume = Convert.ToDouble(result.THB_ENJ.quoteVolume), PercentChange = Convert.ToDouble(result.THB_ENJ.percentChange) },
                     new Coins{ CoinName = "BAND", QuoteVolume = Convert.ToDouble(result.THB_BAND.quoteVolume), PercentChange = Convert.ToDouble(result.THB_BAND.percentChange) },
                     new Coins{ CoinName = "COMP", QuoteVolume = Convert.ToDouble(result.THB_COMP.quoteVolume), PercentChange = Convert.ToDouble(result.THB_COMP.percentChange) },
                     new Coins{ CoinName = "KSM", QuoteVolume = Convert.ToDouble(result.THB_KSM.quoteVolume), PercentChange = Convert.ToDouble(result.THB_KSM.percentChange) },
@@ -96,6 +99,8 @@ namespace Botkub.ConsoleApp
                     new Coins{ CoinName = "YFI", QuoteVolume = Convert.ToDouble(result.THB_YFI.quoteVolume), PercentChange = Convert.ToDouble(result.THB_YFI.percentChange) },
                     new Coins{ CoinName = "UNI", QuoteVolume = Convert.ToDouble(result.THB_UNI.quoteVolume), PercentChange = Convert.ToDouble(result.THB_UNI.percentChange) },
                     new Coins{ CoinName = "AAVE", QuoteVolume = Convert.ToDouble(result.THB_AAVE.quoteVolume), PercentChange = Convert.ToDouble(result.THB_AAVE.percentChange) },
+                    new Coins{ CoinName = "ALPHA", QuoteVolume = Convert.ToDouble(result.THB_ALPHA.quoteVolume), PercentChange = Convert.ToDouble(result.THB_ALPHA.percentChange) },
+                    new Coins{ CoinName = "CRV", QuoteVolume = Convert.ToDouble(result.THB_CRV.quoteVolume), PercentChange = Convert.ToDouble(result.THB_CRV.percentChange) },
                 };
 
                 string[] watchList = ConfigurationManager.AppSettings["BitkubWatchList"].Split(',');
