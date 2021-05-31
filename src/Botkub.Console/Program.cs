@@ -31,7 +31,7 @@ namespace Botkub.ConsoleApp
         }
         static void SendLineNotify(string message)
         {
-            if (!message.Equals(""))
+            if (!string.IsNullOrEmpty(message))
             {
                 string token = "LINE-notify-token";
                 var request = (HttpWebRequest)WebRequest.Create("https://notify-api.line.me/api/notify");
@@ -58,6 +58,7 @@ namespace Botkub.ConsoleApp
                 {
                     new Coins{ CoinName = "BTC", QuoteVolume = Convert.ToDouble(result.THB_BTC.quoteVolume), PercentChange = Convert.ToDouble(result.THB_BTC.percentChange) },
                     new Coins{ CoinName = "ETH", QuoteVolume = Convert.ToDouble(result.THB_ETH.quoteVolume), PercentChange = Convert.ToDouble(result.THB_ETH.percentChange) },
+                    new Coins{ CoinName = "KUB", QuoteVolume = Convert.ToDouble(result.THB_KUB.quoteVolume), PercentChange = Convert.ToDouble(result.THB_KUB.percentChange) },
                     new Coins{ CoinName = "XRP", QuoteVolume = Convert.ToDouble(result.THB_XRP.quoteVolume), PercentChange = Convert.ToDouble(result.THB_XRP.percentChange) },
                     new Coins{ CoinName = "LTC", QuoteVolume = Convert.ToDouble(result.THB_LTC.quoteVolume), PercentChange = Convert.ToDouble(result.THB_LTC.percentChange) },
                     new Coins{ CoinName = "BCH", QuoteVolume = Convert.ToDouble(result.THB_BCH.quoteVolume), PercentChange = Convert.ToDouble(result.THB_BCH.percentChange) },
@@ -100,6 +101,7 @@ namespace Botkub.ConsoleApp
                     new Coins{ CoinName = "UNI", QuoteVolume = Convert.ToDouble(result.THB_UNI.quoteVolume), PercentChange = Convert.ToDouble(result.THB_UNI.percentChange) },
                     new Coins{ CoinName = "AAVE", QuoteVolume = Convert.ToDouble(result.THB_AAVE.quoteVolume), PercentChange = Convert.ToDouble(result.THB_AAVE.percentChange) },
                     new Coins{ CoinName = "ALPHA", QuoteVolume = Convert.ToDouble(result.THB_ALPHA.quoteVolume), PercentChange = Convert.ToDouble(result.THB_ALPHA.percentChange) },
+                    new Coins{ CoinName = "BAL", QuoteVolume = Convert.ToDouble(result.THB_BAL.quoteVolume), PercentChange = Convert.ToDouble(result.THB_BAL.percentChange) },
                     new Coins{ CoinName = "CRV", QuoteVolume = Convert.ToDouble(result.THB_CRV.quoteVolume), PercentChange = Convert.ToDouble(result.THB_CRV.percentChange) },
                 };
 
@@ -252,7 +254,7 @@ namespace Botkub.ConsoleApp
                             }
                         }
 
-                        if (!message.Equals(""))
+                        if (!string.IsNullOrEmpty(message))
                         {
                             Console.WriteLine(message);
                             SendLineNotify(message);
