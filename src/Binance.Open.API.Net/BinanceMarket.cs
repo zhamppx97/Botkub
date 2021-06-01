@@ -1,5 +1,6 @@
 ﻿using Binance.Open.API.Net.Models;
 using Binance.Open.API.Net.Services;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Binance.Open.API.Net
@@ -11,6 +12,10 @@ namespace Binance.Open.API.Net
         public virtual async Task<MarketTicker> GetTickerAsync(string symbol)
         {
             return await _apiService.MarketTickerAsync(symbol);
+        }
+        public virtual async Task<List<MarketTrades>> GetTradesAsync(string symbol)
+        {
+            return await _apiService.MarketTradesAsync(symbol);
         }
     }
 }

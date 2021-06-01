@@ -2,6 +2,7 @@
 using Binance.Open.API.Net.Models;
 using Newtonsoft.Json;
 using RestSharp;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Binance.Open.API.Net.Services
@@ -30,7 +31,7 @@ namespace Binance.Open.API.Net.Services
             var responseContent = JsonConvert.DeserializeObject<MarketTicker>(response.Content);
             return responseContent;
         }
-        public virtual async Task<MarketTrades> MarketTradesAsync(string symbol)
+        public virtual async Task<List<MarketTrades>> MarketTradesAsync(string symbol)
         {
             var url = Endpoints.Market.Trades(_serviceBaseUrl);
             var client = new RestClient(url)
@@ -40,7 +41,7 @@ namespace Binance.Open.API.Net.Services
             var request = new RestRequest(Method.GET);
             request.AddParameter("symbol", symbol, ParameterType.QueryString);
             var response = await client.ExecuteAsync(request);
-            var responseContent = JsonConvert.DeserializeObject<MarketTrades>(response.Content);
+            var responseContent = JsonConvert.DeserializeObject<List<MarketTrades>>(response.Content);
             return responseContent;
         }
         #endregion

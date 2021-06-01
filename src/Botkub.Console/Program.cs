@@ -27,6 +27,7 @@ namespace Botkub.ConsoleApp
             Timer bitkubMarketTicker = new(BitkubTimerMarketTickerCallback, null, 0, 1000 * 60 * 60 * timeHr);
             Timer bitkubWatchList = new(BitkubWatchList, null, 0, 1000 * 30);
             Timer binanceMarketTicker = new(BinanceTimerMarketTickerCallback, null, 0, 1000 * 60 * 60 * timeHr);
+            Timer binanceWatchList = new(BinanceWatchList, null, 0, 1000 * 30);
             Console.ReadLine();
         }
         static void SendLineNotify(string message)
@@ -386,6 +387,84 @@ namespace Botkub.ConsoleApp
         {
             Console.WriteLine("[Binance] Market ticker execute time: " + DateTime.Now);
             BinanceMarketTickerAsync().Wait();
+            GC.Collect();
+        }
+        static async Task BinanceWatchListWorkerAsync()
+        {
+            try
+            {
+                string[] watchList = ConfigurationManager.AppSettings["BitkubWatchList"].Split(',');
+                foreach (var coinName in watchList)
+                {
+                    Console.WriteLine("[Binance] #" + coinName + " Watch list execute time: " + DateTime.Now);
+
+                    IBinanceMarket market = new BinanceMarket();
+                    string sym = coinName + "USDT";
+                    var trades = await market.GetTradesAsync(sym);
+                    foreach (var value in trades)
+                    {
+                        string message = "";
+                        DateTime tradeDatetime = new(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+                        tradeDatetime = tradeDatetime.AddSeconds(Convert.ToDouble(value.time.ToString().Substring(0, 10))).ToLocalTime();
+
+                        if (!value.isBuyerMaker)
+                        {
+                            double priceUSD = Convert.ToDouble(value.price);
+                            double amount = Convert.ToDouble(value.qty);
+                            // Shark
+                            if (amount >= 500 && amount <= 1000)
+                            {
+                                message = "🔶[Binance] #" + coinName + Environment.NewLine + " 🦈 Shark traded! #BUY " + amount.ToString() + "#" + coinName + " | " + priceUSD.ToString() + "#USD |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
+                            }
+                            // Whale
+                            else if (amount >= 1000 && amount <= 5000)
+                            {
+                                message = "🔶[Binance] #" + coinName + Environment.NewLine + " 🐋 Whale traded! #BUY " + amount.ToString() + "#" + coinName + " | " + priceUSD.ToString() + "#USD |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
+                            }
+                            // Humpback Whale
+                            else if (amount >= 5000)
+                            {
+                                message = "🔶[Binance] #" + coinName + Environment.NewLine + " 🐳🐋 Humpback Whale traded! #BUY " + amount.ToString() + "#" + coinName + " | " + priceUSD.ToString() + "#USD |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
+                            }
+                        }
+                        if (value.isBuyerMaker)
+                        {
+                            double priceUSD = Convert.ToDouble(value.price);
+                            double amount = Convert.ToDouble(value.qty);
+                            // Shark
+                            if (amount >= 500 && amount <= 1000)
+                            {
+                                message = "🔶[Binance] #" + coinName + Environment.NewLine + " 🦈 Shark traded! #SELL " + amount.ToString() + "#" + coinName + " | " + priceUSD.ToString() + "#USD |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
+                            }
+                            // Whale
+                            else if (amount >= 1000 && amount <= 5000)
+                            {
+                                message = "🔶[Binance] #" + coinName + Environment.NewLine + " 🐋 Whale traded! #SELL " + amount.ToString() + "#" + coinName + " | " + priceUSD.ToString() + "#USD |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
+                            }
+                            // Humpback Whale
+                            else if (amount >= 5000)
+                            {
+                                message = "🔶[Binance] #" + coinName + Environment.NewLine + " 🐳🐋 Humpback Whale traded! #SELL " + amount.ToString() + "#" + coinName + " | " + priceUSD.ToString() + "#USD |" + " Date: " + tradeDatetime.ToLongDateString() + " " + tradeDatetime.ToShortTimeString();
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(message))
+                        {
+                            Console.WriteLine(message);
+                            SendLineNotify(message);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+        static void BinanceWatchList(Object o)
+        {
+            Console.WriteLine("[Binance] Watch list execute time: " + DateTime.Now);
+            BinanceWatchListWorkerAsync().Wait();
             GC.Collect();
         }
         #endregion
