@@ -10,6 +10,10 @@ namespace Binance.Open.API.Net.Infrastructure
             {
                 return $"{baseUrl}/api/v3/ticker/24hr";
             }
+            public static string Trades(string baseUrl)
+            {
+                return $"{baseUrl}/api/v3/trades";
+            }
             #endregion
         }
     }

@@ -30,6 +30,19 @@ namespace Binance.Open.API.Net.Services
             var responseContent = JsonConvert.DeserializeObject<MarketTicker>(response.Content);
             return responseContent;
         }
+        public virtual async Task<MarketTrades> MarketTradesAsync(string symbol)
+        {
+            var url = Endpoints.Market.Trades(_serviceBaseUrl);
+            var client = new RestClient(url)
+            {
+                Timeout = -1
+            };
+            var request = new RestRequest(Method.GET);
+            request.AddParameter("symbol", symbol, ParameterType.QueryString);
+            var response = await client.ExecuteAsync(request);
+            var responseContent = JsonConvert.DeserializeObject<MarketTrades>(response.Content);
+            return responseContent;
+        }
         #endregion
     }
 }

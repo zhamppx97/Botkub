@@ -7,6 +7,7 @@ namespace Binance.Open.API.Net.Services
     {
         #region Non-Secure endpoints
         Task<MarketTicker> MarketTickerAsync(string symbol);
+        Task<MarketTrades> MarketTradesAsync(string symbol);
         #endregion
     }
 }
